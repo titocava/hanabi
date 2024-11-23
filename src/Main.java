@@ -25,8 +25,11 @@ import java.util.ArrayList;
             // Crear el controlador pasando JuegoHanabi y JuegoMostrable
             ControladorJuegoHanabi controlador = new ControladorJuegoHanabi(juegoHanabi, juegoMostrable);
 
+
+
             // Crear la vista (interfaz gráfica de consola) pasando el controlador
             VistaConsolaGrafica vista = new VistaConsolaGrafica(controlador);
+            controlador.agregarObservador(vista);
 
             // Hacer visible la vista
             vista.setVisible(true);

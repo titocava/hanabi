@@ -7,15 +7,20 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class VistaConsolaGrafica extends JFrame implements IVista {
+public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
     private ControladorJuegoHanabi controlador;
     private final JTextArea txtSalida;
     private final JTextField txtEntrada;
     private final JButton btnEnter;
     private EstadoVistaConsola estado;
     private final List<Jugador> jugadoresRegistrados;
+    private Eventos eventos;
+
+
 
     public VistaConsolaGrafica(ControladorJuegoHanabi controlador) {
         this.controlador = controlador;
@@ -24,6 +29,20 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
         this.txtEntrada = new JTextField();
         this.btnEnter = new JButton("Enter");
 
+        // Crea el JTextArea
+
+// Configura el JTextArea para que no sea editable, y lo haga de solo lectura
+        txtSalida.setEditable(false);
+
+// Asegúrate de que el texto se ajuste bien
+        txtSalida.setLineWrap(true);
+        txtSalida.setWrapStyleWord(true); // Ajuste de línea por palabra
+
+// Agregar el JTextArea a un JScrollPane para desplazamiento si el texto es largo
+        JScrollPane scrollPane = new JScrollPane(txtSalida);
+
+
+        add(scrollPane, BorderLayout.CENTER);
         configurarVentana();
         configurarComponentes();
         configurarEventos();
@@ -61,6 +80,7 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
     }
 
     // Procesamiento de entradas según el estado actual
+    // Procesamiento de entradas según el estado actual
     private void procesarEntrada(String entrada) {
         txtEntrada.setText(""); // Limpia el campo de entrada
         if (entrada.isEmpty()) {
@@ -70,13 +90,9 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
 
         switch (estado) {
             case MENU_PRINCIPAL -> procesarComandoMenuPrincipal(entrada);
-            case NUEVA_PARTIDA -> procesarComandoNuevaPartida(entrada);
             case REGISTRAR_JUGADOR -> procesarComandoRegistrarJugador(entrada);
-            case INICIAR_PARTIDA -> procesarComandoIniciarPartida(entrada);
-            case MENU_ACCIONES_JUGADOR -> procesarComandoMenuAccionesJugador(entrada);
-            case JUGAR_CARTA -> procesarComandoJugarCarta(entrada);
-            case DESCARTAR_CARTA -> procesarComandoDescartarCarta(entrada);
-            case DAR_PISTA -> procesarComandoDarPista(entrada);
+            case INICIAR_PARTIDA -> intentarIniciarJuego();
+            case MENU_ACCIONES_JUGADOR -> mostrarMenuAccionesJugador();
             default -> mostrarMensaje("Comando no reconocido.");
         }
     }
@@ -85,40 +101,28 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
     private void mostrarMenuPrincipal() {
         estado = EstadoVistaConsola.MENU_PRINCIPAL;
         mostrarMensaje("""
-                Menú Principal:
-                1. Nueva Partida
-                2. Salir
-                Seleccione una opción:
-                """);
+            Menú Principal:
+            1. Registrar Jugador
+            2. Iniciar Partida
+            3. Salir
+            Seleccione una opción:
+            """);
     }
 
     private void procesarComandoMenuPrincipal(String comando) {
         switch (comando) {
-            case "1" -> mostrarMenuNuevaPartida();
-            case "2" -> salirJuego();
-            default -> mostrarMensaje("Opción no válida. Elija '1' para Nueva Partida o '2' para Salir.");
-        }
-    }
-
-    private void mostrarMenuNuevaPartida() {
-        estado = EstadoVistaConsola.NUEVA_PARTIDA;
-        mostrarMensaje("""
-                Menú Nueva Partida:
-                1. Registrar Jugador
-                2. Iniciar Juego
-                Seleccione una opción:
-                """);
-    }
-
-    private void procesarComandoNuevaPartida(String comando) {
-        switch (comando) {
             case "1" -> iniciarRegistroJugador();
             case "2" -> intentarIniciarJuego();
-            default -> mostrarMensaje("Opción no válida. Intente nuevamente.");
+            case "3" -> salirJuego();
+            default -> mostrarMensaje("Opción no válida. Elija '1', '2' o '3'.");
         }
     }
 
     private void iniciarRegistroJugador() {
+        if (jugadoresRegistrados.size() >= 4) {
+            mostrarMensaje("Ya se ha alcanzado el límite máximo de jugadores.");
+            return;
+        }
         estado = EstadoVistaConsola.REGISTRAR_JUGADOR;
         mostrarMensaje("Introduzca el nombre del jugador:");
     }
@@ -131,8 +135,7 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
 
         if (jugadoresRegistrados.size() >= 4) {
             mostrarMensaje("Ya se ha alcanzado el límite máximo de jugadores.");
-            // Aquí verificamos si podemos continuar al menú de iniciar partida
-            mostrarMenuNuevaPartida(); // Volver a mostrar la opción para iniciar juego
+            mostrarMenuPrincipal();
             return;
         }
 
@@ -144,12 +147,12 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
             mostrarMensaje("Error al registrar el jugador. Intente nuevamente.");
         }
 
-        if (jugadoresRegistrados.size() >= 2) {
-            mostrarMensaje("Se han registrado suficientes jugadores. Puede iniciar el juego.");
-            mostrarMenuNuevaPartida(); // Volver al menú para iniciar el juego
+        if (jugadoresRegistrados.size() == 4) {
+            mostrarMensaje("Se ha alcanzado el límite máximo de jugadores. Puede iniciar la partida.");
+            mostrarMenuPrincipal();
         } else {
-            // Si no se alcanzan los jugadores mínimos, seguimos en el registro
-            mostrarMensaje("Aún necesita " + (2 - jugadoresRegistrados.size()) + " jugadores más.");
+            mostrarMensaje("Jugadores registrados: " + jugadoresRegistrados.size() + ". Faltan " +
+                    (2 - jugadoresRegistrados.size()) + " jugadores más para iniciar.");
         }
     }
 
@@ -158,10 +161,34 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
             mostrarMensaje("Se necesitan al menos 2 jugadores para iniciar el juego.");
             return;
         }
+
         controlador.iniciarJuego(jugadoresRegistrados);
+        controlador.iniciarTurno();
         mostrarMensaje("El juego ha comenzado. ¡Que comience la partida!");
-        estado = EstadoVistaConsola.JUEGO_EN_CURSO;
+        estado = EstadoVistaConsola.JUEGO_INICIADO;
+
+        crearVistasPorJugador();
     }
+
+    // Crea vistas independientes para cada jugador y muestra sus manos
+    private void crearVistasPorJugador() {
+        for (Jugador jugador : jugadoresRegistrados) {
+            VistaConsolaGrafica vistaJugador = new VistaConsolaGrafica(controlador, jugador);
+            controlador.agregarObservador(vistaJugador);
+        }
+    }
+
+    // Muestra el menú de acciones para el jugador actual
+    private void mostrarMenuAccionesJugador() {
+        mostrarMensaje("""
+            Menú de Acciones:
+            1. Jugar Carta
+            2. Descartar Carta
+            3. Dar Pista
+            Seleccione una opción:
+            """);
+    }
+
 
     private void procesarComandoMenuAccionesJugador(String comando) {
         switch (comando) {
@@ -177,16 +204,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
         System.exit(0);
     }
 
-    private void procesarComandoIniciarPartida(String comando) {
-        if (jugadoresRegistrados.size() < 2) {
-            mostrarMensaje("No hay suficientes jugadores. Se requieren al menos 2 para iniciar la partida.");
-            return;
-        }
-        controlador.iniciarJuego(jugadoresRegistrados);
-        mostrarMensaje("La partida ha comenzado. ¡Buena suerte!");
-        estado = EstadoVistaConsola.MENU_ACCIONES_JUGADOR; // Cambiar al menú de acciones del jugador actual
-        controlador.mostrarManoJugadorTurno(controlador.obtenerJugadorActual()); // Asume que este método existe
-    }
 
     private void procesarComandoJugarCarta(String entrada) {
         try {
@@ -220,104 +237,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
         }
     }
 
-    private void procesarComandoDarPista(String entrada) {
-        String[] partes = entrada.split("\\s+");
-
-        // Verificamos que la entrada sea válida (al menos 2 partes: nombre y tipo de pista)
-        if (partes.length < 2) {
-            mostrarMensaje("Formato incorrecto. Use: [Jugador] [color|número]");
-            return;
-        }
-
-        String nombreJugador = partes[0];
-        String tipoPista = partes[1].toLowerCase();
-
-        // Obtenemos el jugador objetivo
-        Jugador jugadorObjetivo = controlador.obtenerJugadorPorNombre(nombreJugador);
-        if (jugadorObjetivo == null) {
-            mostrarMensaje("Jugador no encontrado. Intente nuevamente.");
-            return;
-        }
-
-        // Ahora creamos la pista según el tipo de pista
-        TipoPista tipoPistaEnum;
-        Pista pista = null;
-        if (tipoPista.equals("color")) {
-            // Aquí debes obtener un color (de alguna forma, dependiendo de tu implementación de ColorCarta)
-            // Supondré que obtienes el color de alguna forma (por ejemplo, por consola o seleccionando un color predefinido).
-            mostrarMensaje("Por favor, ingrese el color de la pista (como ColorCarta)");
-            String colorInput = obtenerEntradaColor();  // Método que debería implementar para obtener el color
-            ColorCarta color = ColorCarta.valueOf(colorInput.toUpperCase());  // Suponiendo que ColorCarta es un enum
-            tipoPistaEnum = TipoPista.COLOR;
-            pista = controlador.crearPista(tipoPistaEnum, color);
-        } else if (tipoPista.equals("número")) {
-            // En este caso, obtenemos el número para la pista
-            mostrarMensaje("Por favor, ingrese el número de la pista.");
-            String numeroInput = obtenerEntradaNumero();  // Método que debería implementar para obtener el número
-            Integer numero = Integer.valueOf(numeroInput);
-            tipoPistaEnum = TipoPista.NUMERO;
-            pista = controlador.crearPista(tipoPistaEnum, numero);
-        } else {
-            mostrarMensaje("Tipo de pista no válido. Use 'color' o 'número'.");
-            return;
-        }
-
-        // Finalmente, notificar al controlador que se ha dado una pista
-        controlador.jugadorDaPista(controlador.obtenerJugadorActual(), jugadorObjetivo, pista);
-        mostrarMensaje("Pista dada a " + jugadorObjetivo.getNombre() + ": " + tipoPista);
-    }
-    // Método para obtener la entrada de color (supuesto que se usa un enum ColorCarta)
-    private String obtenerEntradaColor() {
-        // Aquí deberías implementar la lógica para pedir al usuario que ingrese un color
-        return "ROJO";  // Esto es solo un ejemplo, deberías pedir realmente al usuario
-    }
-
-    // Método para obtener la entrada de número
-    private String obtenerEntradaNumero() {
-        // Aquí deberías implementar la lógica para pedir al usuario que ingrese un número
-        return "5";  // Esto es solo un ejemplo, deberías pedir realmente al usuario
-    }
-
-
-    private void mostrarManoJugadorTurno() {
-        Jugador jugadorActual = controlador.obtenerJugadorActual();
-        mostrarMensaje("Es el turno de: " + jugadorActual.getNombre());
-
-        // Mostrar la mano del jugador
-        mostrarMensaje("Tu mano:");
-        List<Carta> mano = jugadorActual.getMano();
-        for (int i = 0; i < mano.size(); i++) {
-            Carta carta = mano.get(i);
-            mostrarMensaje((i + 1) + ". " + carta);  // Mostrar carta y su índice
-        }
-
-        // Mostrar las opciones disponibles
-        mostrarMenuAccionesJugador();
-    }
-
-    private void mostrarMenuAccionesJugador() {
-        Jugador jugadorActual = controlador.obtenerJugadorActual(); // Obtener al jugador actual
-        mostrarMensaje("Es el turno de: " + jugadorActual.getNombre());
-
-        // Mostrar la mano del jugador
-        mostrarMensaje("Tu mano:");
-        List<Carta> mano = jugadorActual.getMano();
-        for (int i = 0; i < mano.size(); i++) {
-            Carta carta = mano.get(i);
-            mostrarMensaje((i + 1) + ". " + carta);  // Mostrar la carta y su índice
-        }
-
-        // Mostrar las opciones del menú
-        mostrarMensaje("""
-            Menú de Acciones:
-            1. Jugar una carta
-            2. Descartar una carta
-            3. Dar una pista
-            4. Finalizar turno
-            Seleccione una opción:
-            """);
-    }
-
 
 
 
@@ -333,10 +252,7 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
         this.controlador = controlador;
     }
 
-    @Override
-    public void actualizar(Eventos evento, Object data) {
-        // Implementar según los eventos que maneje el juego
-    }
+
 
     @Override
     public void mostrarFinJuego() {
@@ -351,7 +267,7 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
 
     @Override
     public void mostrarTurno(Jugador jugador) {
-        mostrarMensaje("Es el turno de: " + jugador.getNombre());
+        mostrarMensaje("Es el turno dea: " + jugador.getNombre());
     }
 
     @Override
@@ -363,5 +279,161 @@ public class VistaConsolaGrafica extends JFrame implements IVista {
     public void mostrarInicioJuego() {
         // Implementación futura
     }
+    @Override
+    public void actualizar(Eventos evento, Object data) {
+
+    }
+
+
+
+    @Override
+    public void notificar(Eventos evento) {
+        switch (evento) {
+            case JUEGO_INICIADO:
+                mostrarMensaje("¡El juego ha comenzado de verdad!");
+                break;
+            case INICIO_TURNO:
+                mostrarMensaje("¡Es el turno de " + controlador.obtenerJugadorActual().getNombre() + "!");
+                break;
+            case CAMBIO_TURNO:
+                mostrarMensaje("¡El turno ha cambiado!");
+                break;
+            case VICTORIA:
+                mostrarMensaje("¡El juego ha terminado con una victoria!");
+                break;
+            case DERROTA:
+                mostrarMensaje("¡El juego ha terminado con derrota!");
+                break;
+            case FICHA_PISTA_USADA:
+                mostrarMensaje("Se ha utilizado una ficha de pista.");
+                break;
+            case FALTA_FICHA_PISTA:
+                mostrarMensaje("No hay fichas de pista disponibles.");
+                break;
+            case FICHA_VIDA_PERDIDA:
+                mostrarMensaje("Se ha perdido una ficha de vida.");
+                break;
+            case FALTA_FICHA_VIDA:
+                mostrarMensaje("No hay fichas de vida disponibles.");
+                break;
+            case FALTA_FICHA_PISTA_USADA:
+                mostrarMensaje("No hay fichas de pista usadas para recuperar.");
+                break;
+            case NO_ES_TURNO:
+                mostrarMensaje("No es tu turno.");
+                break;
+            case NO_HAY_PISTA_DIPONIBLE:
+                mostrarMensaje("No hay fichas de pista disponibles para dar.");
+                break;
+            case NO_HAY_PISTAS_USADAS:
+                mostrarMensaje("No se han usado pistas que puedas descartar.");
+                break;
+            /*case ERROR_REGISTRO_JUGADOR:
+                mostrarMensaje("Error en el registro del jugador: " + evento.getMessage());
+                break;
+            case ERROR_CREACION_JUGADOR:
+                mostrarMensaje("Error en la creación del jugador: " + evento.getMessage());
+                break;*/
+            default:
+                mostrarMensaje("Evento desconocido.");
+                break;
+        }
+    }
+
+    @Override
+    public void notificar(Eventos evento, Object datoAenviar) {
+        switch (evento) {
+            case JUGADOR_JUGO_CARTA:
+                mostrarMensaje("¡El jugador ha jugado una carta!");
+                break;
+            case JUGADOR_DESCARTO_CARTA:
+                mostrarMensaje("¡El jugador ha descartado una carta!");
+                break;
+            case JUGADOR_TOMO_CARTA:
+                mostrarMensaje("¡El jugador ha tomado una carta!");
+                break;
+            case PISTA_CREADA:
+                // Aquí recibimos la pista creada, puedes mostrar información sobre ella
+                Pista pista = (Pista) datoAenviar;
+                mostrarMensaje("Pista creada: " + pista.toString());
+                break;
+            case OBTENER_NOMBRE_JUGADOR:
+                // Aquí recibimos el nombre del jugador
+                String nombre = (String) datoAenviar;
+                mostrarMensaje("El nombre del jugador es: " + nombre);
+                break;
+            case OBTENER_CANTIDAD_JUGADORES:
+                // Aquí recibimos la cantidad de jugadores
+                int cantidadJugadores = (int) datoAenviar;
+                mostrarMensaje("La cantidad de jugadores es: " + cantidadJugadores);
+                break;
+            /*case OBTENER_JUGADORES:
+                // Aquí recibimos la lista de jugadores
+                Jugador[] jugadores = (Jugador[]) datoAenviar;
+                mostrarJugadores(jugadores);
+                break;
+            case MOSTRAR_MANO_JUGADOR_PISTA:
+                // Aquí recibimos el jugador cuyo mano debemos mostrar para dar pista
+                Jugador jugadorPista = (Jugador) datoAenviar;
+                mostrarManoJugadorParaPista(jugadorPista);
+                break;*/
+            case MOSTRAR_VISTA_JUGADOR:
+                System.out.println("llego bien");
+                // Verifica que representacionCartas sea un Map
+                if (datoAenviar instanceof Map<?, ?>) {
+                    // Realiza el cast seguro
+                    Map<Jugador, List<CartaRepresentacion>> vistaJugadores =
+                            (Map<Jugador, List<CartaRepresentacion>>) datoAenviar;
+
+                    // Procesa y muestra los datos
+                    StringBuilder mensaje = new StringBuilder();
+                    for (Map.Entry<Jugador, List<CartaRepresentacion>> entry : vistaJugadores.entrySet()) {
+                        Jugador jugador = entry.getKey();
+                        List<CartaRepresentacion> mano = entry.getValue();
+
+                        mensaje.append("Mano de ").append(jugador.getNombre()).append(":\n");
+                        for (CartaRepresentacion carta : mano) {
+                            if (carta.isVisible()) {
+                                mensaje.append("  - ").append(carta.getColor()).append(" ").append(carta.getValor()).append("\n");
+                            } else {
+                                mensaje.append("  - [CARTA OCULTA]\n");
+                            }
+                        }
+                    }
+
+                    // Usa mostrarMensaje para mostrar toda la información
+                    mostrarMensaje(mensaje.toString());
+                } else {
+                    mostrarMensaje("El objeto recibido no es del tipo esperado.");
+                }
+                break;
+
+            case MOSTRAR_MANO:
+                // Aquí recibimos la mano del jugador
+                String mano = (String) datoAenviar;
+                mostrarMensaje("La mano del jugador es: " + mano);
+                break;
+            case MOSTRAR_MANO_NUMEROS:
+                // Aquí recibimos la mano del jugador con números
+                String manoNumeros = (String) datoAenviar;
+                mostrarMensaje("La mano de números del jugador es: " + manoNumeros);
+                break;
+            case MOSTRAR_MANO_COLORES:
+                // Aquí recibimos la mano del jugador con colores
+                String manoColores = (String) datoAenviar;
+                mostrarMensaje("La mano de colores del jugador es: " + manoColores);
+                break;
+            default:
+                mostrarMensaje("Evento desconocido o no manejado con datos.");
+                break;
+        }
+    }
+
+
+
+
 }
+
+
+
 

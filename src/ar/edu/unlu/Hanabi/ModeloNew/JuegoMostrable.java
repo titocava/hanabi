@@ -54,6 +54,36 @@ public class JuegoMostrable {
         return representacionManos;
     }
 
+    // Método para mostrar la vista de todos los jugadores
+    public Map<Jugador, List<CartaRepresentacion>> mostrarVistaJugadores(Jugador jugadorActual) {
+        Map<Jugador, List<CartaRepresentacion>> vistaJugadores = new HashMap<>();
+
+        // Obtener todos los jugadores
+        List<Jugador> jugadores = tablero.obtenerJugadores();
+
+        for (Jugador jugador : jugadores) {
+            List<CartaRepresentacion> representacionMano = new ArrayList<>();
+
+            // Si es el jugador actual, las cartas pueden estar ocultas o visibles
+            if (jugador.equals(jugadorActual)) {
+                for (Carta carta : jugador.getMano()) {
+                    representacionMano.add(new CartaRepresentacion(carta.getColor(), carta.getNumero(), carta.esRevelada()));
+                }
+            } else {
+                // Si no es el jugador actual, todas las cartas estarán visibles
+                for (Carta carta : jugador.getMano()) {
+                    representacionMano.add(new CartaRepresentacion(carta.getColor(), carta.getNumero(), true));
+                }
+            }
+
+            // Añadir la representación del jugador al mapa
+            vistaJugadores.put(jugador, representacionMano);
+        }
+
+        return vistaJugadores;
+    }
+
+
 
 
 

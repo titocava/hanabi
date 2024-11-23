@@ -119,11 +119,6 @@ public class JuegoHanabi {
         return null;  // Si no se encuentra un jugador con ese nombre
     }
 
-    // Método para obtener al jugador que tiene el turno
-    public Jugador obtenerJugadorTurno() {
-        return jugadores.get(indiceTurnoActual);
-    }
-
     public void jugadorJuegaCarta(Jugador jugador, Carta carta) {
         if (jugador == null || carta == null) {
             throw new IllegalArgumentException("El jugador objetivo y la pista no pueden ser nulos.");
@@ -155,7 +150,11 @@ public class JuegoHanabi {
 
 
     public void jugadorTomaCarta(Jugador jugador, Carta carta) {
+        if (jugador == null || carta == null) {
+            throw new IllegalStateException("No puedes tomar una carta porque no hay cartas en el mazo.");
+        }
         tablero.tomarCarta(jugador);
+
     }
 
 

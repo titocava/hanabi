@@ -22,4 +22,5 @@ public class CartaRepresentacion {
     public boolean isVisible() {
         return visible;
     }
+
 }

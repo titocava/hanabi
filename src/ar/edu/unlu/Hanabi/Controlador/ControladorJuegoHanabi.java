@@ -1,9 +1,11 @@
 package ar.edu.unlu.Hanabi.Controlador;
 
 import ar.edu.unlu.Hanabi.ModeloNew.*;
+import ar.edu.unlu.Hanabi.Vista.IVista;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 public class ControladorJuegoHanabi implements Observado {
@@ -15,6 +17,7 @@ public class ControladorJuegoHanabi implements Observado {
         this.juegoHanabi = juegoHanabi;
         this.juegoMostrable = juegoMostrable;
         this.observadores = new ArrayList<>();
+
     }
 
     // Métodos que manejan eventos
@@ -65,8 +68,12 @@ public class ControladorJuegoHanabi implements Observado {
     }
 
     public void recuperarFichaPista() {
-        juegoHanabi.recuperarFichaPista();
-        notificarObservador(Eventos.FICHA_PISTA_RECUPERADA);
+        if (juegoMostrable.obtenerFichasDePistaUsadas() > 0) {
+            juegoHanabi.recuperarFichaPista();
+            notificarObservador(Eventos.FICHA_PISTA_RECUPERADA);
+        } else {
+            notificarObservador(Eventos.FALTA_FICHA_PISTA_USADA);
+        }
     }
 
     public int obtenerFichasDePistaDisponibles() {
@@ -165,41 +172,58 @@ public class ControladorJuegoHanabi implements Observado {
         Jugador[] jugadores = juegoHanabi.getJugadores();
         notificarObservador(Eventos.OBTENER_JUGADORES, jugadores);
     }
-    // Método para obtener un jugador por su nombre
-    public Jugador obtenerJugadorPorNombre(String nombre) {
-        for (Jugador jugador : juegoHanabi.getJugadores()) {
-            if (jugador.getNombre().equalsIgnoreCase(nombre)) {
-                return jugador;
+    // Método para obtener un jugador por su nombre y notificar al observador
+    public void obtenerJugadorPorNombreParaPista(String nombre) {
+        Jugador jugador = null;
+        for (Jugador j : juegoHanabi.getJugadores()) {
+            if (j.getNombre().equalsIgnoreCase(nombre)) {
+                jugador = j;
+                break;
             }
         }
-        return null; // Si no se encuentra el jugador
+
+        if (jugador == null) {
+            // Si no se encuentra el jugador, notificar al observador
+            notificarObservador(Eventos.JUGADOR_NO_EXISTE, null);
+        } else {
+            // Notificar también para mostrar las cartas del jugador (opcional, dependiendo de cómo lo manejes)
+            notificarObservador(Eventos.MOSTRAR_MANO_JUGADOR_PISTA, jugador);
+        }
     }
 
     // Mostrar la mano del jugador en turno
     public void mostrarManoJugadorTurno(Jugador jugadorTurno) {
-        List<CartaRepresentacion> mano = juegoMostrable.obtenerManoJugadorTurno(jugadorTurno);
-        notificarObservador(Eventos.MOSTRAR_MANO_JUGADOR_TURNO, mano);
+        List<CartaRepresentacion> manoTurno = juegoMostrable.obtenerManoJugadorTurno(jugadorTurno);
+        notificarObservador(Eventos.MOSTRAR_MANO_JUGADOR_TURNO, manoTurno);
     }
 
     // Mostrar las manos visibles para un jugador en espera
     public void mostrarManosParaJugadorEnEspera(Jugador jugadorEnEspera) {
-        List<List<CartaRepresentacion>> manosVisibles = juegoMostrable.obtenerManosParaJugadorEnEspera(jugadorEnEspera);
-        notificarObservador(Eventos.MOSTRAR_MANOS_JUGADOR_ESPERA, manosVisibles);
+        List<List<CartaRepresentacion>> manosVisiblesEspera = juegoMostrable.obtenerManosParaJugadorEnEspera(jugadorEnEspera);
+        notificarObservador(Eventos.MOSTRAR_MANOS_JUGADOR_ESPERA, manosVisiblesEspera);
     }
 
-    public void mostrarManoJugador(Jugador jugador) {
-        String mano = JuegoMostrable.mostrarManoJugador(jugador).toString();
-        notificarObservador(Eventos.MOSTRAR_MANO, mano);
+    public void mostrarVistaJugador(Jugador jugadorActual) {
+        Map<Jugador, List<CartaRepresentacion>> vistaJugadores = juegoMostrable.mostrarVistaJugadores(jugadorActual);
+        notificarObservador(Eventos.MOSTRAR_VISTA_JUGADOR, vistaJugadores);
     }
 
-    public void mostrarManoJugadorPorNumero(Jugador jugador) {
-        String mano = JuegoMostrable.mostrarManoJugadorPorNumero(jugador).toString();
-        notificarObservador(Eventos.MOSTRAR_MANO_NUMEROS, mano);
+
+
+
+    public void mostrarManoJugadorParaPista(Jugador jugador) {
+        String manoPista = JuegoMostrable.mostrarManoJugador(jugador).toString();
+        notificarObservador(Eventos.MOSTRAR_MANO, manoPista);
     }
 
-    public void mostrarManoJugadorPorColor(Jugador jugador) {
-        String mano = JuegoMostrable.mostrarManoJugadorPorColor(jugador).toString();
-        notificarObservador(Eventos.MOSTRAR_MANO_COLORES, mano);
+    public void mostrarManoJugadorPorNumeroParaPista(Jugador jugador) {
+        String manoNumeroPista = JuegoMostrable.mostrarManoJugadorPorNumero(jugador).toString();
+        notificarObservador(Eventos.MOSTRAR_MANO_NUMEROS, manoNumeroPista);
+    }
+
+    public void mostrarManoJugadorPorColorParaPista(Jugador jugador) {
+        String manoColorPista = JuegoMostrable.mostrarManoJugadorPorColor(jugador).toString();
+        notificarObservador(Eventos.MOSTRAR_MANO_COLORES, manoColorPista);
     }
 
     public void registrarJugador(String nombreJugador) {
@@ -222,7 +246,12 @@ public class ControladorJuegoHanabi implements Observado {
         return null;
     }
     public Jugador obtenerJugadorActual() {
-        return juegoHanabi.obtenerJugadorTurno();
+        return juegoHanabi.getJugadorActual();
+
+    }
+
+    public Jugador[] obtenerListaJugadores() {
+        return juegoHanabi.getJugadores();
     }
 
     @Override
@@ -243,4 +272,6 @@ public class ControladorJuegoHanabi implements Observado {
             observador.notificar(evento, data);
         }
     }
+
+
 }
