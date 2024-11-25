@@ -3,7 +3,7 @@ package ar.edu.unlu.Hanabi.ModeloNew;
 public enum Eventos {
 
     // Eventos relacionados con el inicio del juego
-    JUEGO_INICIADO,
+
     INICIAR_JUEGO,
 
     // Eventos relacionados con los turnos
@@ -49,6 +49,9 @@ public enum Eventos {
     ERROR_CREACION_JUGADOR,
     ACCION_DESCONOCIDA,
     ERROR_ACCION,
+    ESTADO_REGISTRO,
+    JUEGO_LISTO,
+    MOSTRAR_MANOS_VISIBLES_RESTO,
 
     // Eventos relacionados con la visualización de las manos y la vista del jugador
     MOSTRAR_MANO_JUGADOR_TURNO,

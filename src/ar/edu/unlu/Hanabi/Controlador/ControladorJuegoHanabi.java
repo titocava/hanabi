@@ -1,7 +1,6 @@
 package ar.edu.unlu.Hanabi.Controlador;
 
 import ar.edu.unlu.Hanabi.ModeloNew.*;
-import ar.edu.unlu.Hanabi.Vista.IVista;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +11,7 @@ public class ControladorJuegoHanabi implements Observado {
     private final JuegoHanabi juegoHanabi;
     private final List<Observador> observadores;
     private final JuegoMostrable juegoMostrable;
+    private Jugador nuevojugador;
 
     public ControladorJuegoHanabi(JuegoHanabi juegoHanabi, JuegoMostrable juegoMostrable) {
         this.juegoHanabi = juegoHanabi;
@@ -24,12 +24,12 @@ public class ControladorJuegoHanabi implements Observado {
 
     public void iniciarJuego(List<Jugador> jugadores) {
         juegoHanabi.iniciarJuego(jugadores);
-        notificarObservador(Eventos.JUEGO_INICIADO);
+        notificarObservador(Eventos.INICIAR_JUEGO);
     }
 
     public void iniciarTurno() {
         juegoHanabi.iniciarTurno();
-        notificarObservador(Eventos.INICIO_TURNO);
+       // notificarObservador(Eventos.INICIO_TURNO);
     }
 
     public void cambiarTurno() {
@@ -163,15 +163,22 @@ public class ControladorJuegoHanabi implements Observado {
         notificarObservador(Eventos.OBTENER_NOMBRE_JUGADOR, nombre);
     }
 
-    public void obtenerCantidadJugadores() {
+    /*public void obtenerCantidadJugadores() {
         int cantidad = juegoHanabi.getJugadores().length;
         notificarObservador(Eventos.OBTENER_CANTIDAD_JUGADORES, cantidad);
-    }
+    }*/
+
+
 
     public void obtenerJugadores() {
-        Jugador[] jugadores = juegoHanabi.getJugadores();
+        // Obtener la lista de jugadores desde JuegoHanabi
+        List<Jugador> jugadores = juegoHanabi.getJugadores();
         notificarObservador(Eventos.OBTENER_JUGADORES, jugadores);
     }
+
+    public List<Jugador> obtenerListaJugadores() {return juegoHanabi.getJugadores();}
+
+
     // Método para obtener un jugador por su nombre y notificar al observador
     public void obtenerJugadorPorNombreParaPista(String nombre) {
         Jugador jugador = null;
@@ -191,29 +198,51 @@ public class ControladorJuegoHanabi implements Observado {
         }
     }
 
-    // Mostrar la mano del jugador en turno
-    public void mostrarManoJugadorTurno(Jugador jugadorTurno) {
-        List<CartaRepresentacion> manoTurno = juegoMostrable.obtenerManoJugadorTurno(jugadorTurno);
-        notificarObservador(Eventos.MOSTRAR_MANO_JUGADOR_TURNO, manoTurno);
+   public void obtenerManoJugadorInstanciado(Jugador juegadorInstanciado){
+       List<String> manoJugador = juegoMostrable.obtenerManoJugador(juegadorInstanciado);
+       notificarObservador(Eventos.MOSTRAR_MANO, manoJugador);
+   }
+    public List<String> manoJugadorInicio(Jugador jugadorInstanciado) {
+        List<String> manoJugador = juegoMostrable.obtenerManoJugador(jugadorInstanciado);
+        return manoJugador;
     }
 
-    // Mostrar las manos visibles para un jugador en espera
-    public void mostrarManosParaJugadorEnEspera(Jugador jugadorEnEspera) {
-        List<List<CartaRepresentacion>> manosVisiblesEspera = juegoMostrable.obtenerManosParaJugadorEnEspera(jugadorEnEspera);
-        notificarObservador(Eventos.MOSTRAR_MANOS_JUGADOR_ESPERA, manosVisiblesEspera);
+    public void manejarObtenerManosVisiblesResto(Jugador jugadorInstanciado) {
+        // Obtener las manos visibles del resto de los jugadores desde JuegoMostrable
+        List<Map<String, List<String>>> listaManosVisibles = juegoMostrable.obtenerManosVisiblesResto(jugadorInstanciado);
+
+        // Notificar a las vistas con el evento correspondiente y el dato
+        notificarObservador(Eventos.MOSTRAR_MANOS_VISIBLES_RESTO, listaManosVisibles);
     }
 
-    public void mostrarVistaJugador(Jugador jugadorActual) {
-        Map<Jugador, List<CartaRepresentacion>> vistaJugadores = juegoMostrable.mostrarVistaJugadores(jugadorActual);
-        notificarObservador(Eventos.MOSTRAR_VISTA_JUGADOR, vistaJugadores);
+    public List<Map<String, List<String>>> manosRestoJugadoresInicio(Jugador jugadorInstanciado) {
+        List<Map<String, List<String>>> listaManosVisibles = juegoMostrable.obtenerManosVisiblesResto(jugadorInstanciado);
+        return listaManosVisibles;
     }
+
+
+
+    public List<Object> obtenerDatosTablero() {
+        List<Object> datosTablero = new ArrayList<>();
+
+        // Obtener los diferentes datos del tablero y agregarlos a la lista
+        datosTablero.add(juegoMostrable.obtenerCartasRestantesEnMazo());
+        datosTablero.add(juegoMostrable.obtenerFichasDeVida());
+        datosTablero.add(juegoMostrable.obtenerFichasDePistaUsadas());
+        datosTablero.add(juegoMostrable.obtenerFichasDePista());
+        datosTablero.add(juegoMostrable.obtenerCastillos());
+
+        return datosTablero;
+    }
+
+
 
 
 
 
     public void mostrarManoJugadorParaPista(Jugador jugador) {
         String manoPista = JuegoMostrable.mostrarManoJugador(jugador).toString();
-        notificarObservador(Eventos.MOSTRAR_MANO, manoPista);
+        notificarObservador(Eventos.MOSTRAR_MANO_JUGADOR_PISTA, manoPista);
     }
 
     public void mostrarManoJugadorPorNumeroParaPista(Jugador jugador) {
@@ -226,33 +255,22 @@ public class ControladorJuegoHanabi implements Observado {
         notificarObservador(Eventos.MOSTRAR_MANO_COLORES, manoColorPista);
     }
 
+
+
     public void registrarJugador(String nombreJugador) {
         try {
             juegoHanabi.registrarJugador(nombreJugador);
-            notificarObservador(Eventos.JUGADOR_REGISTRADO, nombreJugador);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            notificarObservador(Eventos.ERROR_REGISTRO_JUGADOR, e.getMessage());
-        }
-    }
-
-    public Jugador crearJugador(String nombreJugador) {
-        try {
-            Jugador nuevoJugador = juegoHanabi.registrarJugador(nombreJugador);
-            notificarObservador(Eventos.JUGADOR_CREADO, nuevoJugador);
-            return nuevoJugador;
+            notificarObservador(Eventos.JUGADOR_CREADO);
         } catch (IllegalArgumentException e) {
             notificarObservador(Eventos.ERROR_CREACION_JUGADOR, e.getMessage());
         }
-        return null;
     }
     public Jugador obtenerJugadorActual() {
         return juegoHanabi.getJugadorActual();
 
     }
 
-    public Jugador[] obtenerListaJugadores() {
-        return juegoHanabi.getJugadores();
-    }
+
 
     @Override
     public void agregarObservador(Observador observador) {
@@ -272,6 +290,8 @@ public class ControladorJuegoHanabi implements Observado {
             observador.notificar(evento, data);
         }
     }
+
+
 
 
 }

@@ -1,9 +1,6 @@
 import ar.edu.unlu.Hanabi.Controlador.ControladorJuegoHanabi;
-import ar.edu.unlu.Hanabi.ModeloNew.JuegoHanabi;
-import ar.edu.unlu.Hanabi.ModeloNew.JuegoMostrable;
-import ar.edu.unlu.Hanabi.ModeloNew.Jugador;
-import ar.edu.unlu.Hanabi.ModeloNew.Tablero;
-import ar.edu.unlu.Hanabi.Vista.VistaConsolaGrafica;
+import ar.edu.unlu.Hanabi.ModeloNew.*;
+import ar.edu.unlu.Hanabi.Vista.*;
 
 import java.util.ArrayList;
 
@@ -27,12 +24,12 @@ import java.util.ArrayList;
 
 
 
-            // Crear la vista (interfaz gráfica de consola) pasando el controlador
-            VistaConsolaGrafica vista = new VistaConsolaGrafica(controlador);
-            controlador.agregarObservador(vista);
+            /// Crear la vista usando la interfaz IVista
+            IVista vista = new VistaConsolaGrafica(controlador);
 
-            // Hacer visible la vista
-            vista.setVisible(true);
+            // Agregar la vista como observador al controlador
+            controlador.agregarObservador((Observador) vista);
+            vista.iniciar();
         }
     }
 

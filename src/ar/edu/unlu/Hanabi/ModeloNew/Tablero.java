@@ -27,14 +27,10 @@ public class Tablero {
     }
 
 
-    // Método para iniciar el juego, repartir cartas y preparar el tablero
-    public void iniciarJuego() {
-        // Repartir cartas entre los jugadores al inicio del juego
-        repartirCartas(jugadores);
-    }
+
 
     // Método para repartir cartas a los jugadores al inicio del juego
-    private void repartirCartas(List<Jugador> jugadores) {
+    public void repartirCartas(List<Jugador> jugadores) {
         int cartasPorJugador = (jugadores.size() <= 3) ? 5 : 4; // 5 cartas para 2-3 jugadores, 4 para 4-5 jugadores
         for (Jugador jugador : jugadores) {
             for (int i = 0; i < cartasPorJugador; i++) {
@@ -51,9 +47,7 @@ public class Tablero {
         return mazo.cartasRestantes();
     }
 
-    public List<CastilloDeCartas> getCastillos() {
-        return Collections.unmodifiableList(castillos);
-    }
+
 
     public void darPista(Jugador jugadorDestino, Pista pista) {
         if (obtenerFichasDePista() <= 0) {
@@ -201,6 +195,11 @@ public class Tablero {
     public List<Jugador> obtenerJugadores() {
         return this.jugadores;  // Asumiendo que 'jugadores' es un campo en Tablero
     }
+
+    public List<CastilloDeCartas> getCastillos() {
+        return castillos;  // Devolvemos una copia de la lista de castillos
+    }
+
 
 
 

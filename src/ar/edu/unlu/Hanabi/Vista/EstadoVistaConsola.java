@@ -15,12 +15,14 @@ public enum EstadoVistaConsola {
     JUGAR_CARTA,
     DESCARTAR_CARTA,
     DAR_PISTA,
+    CONFIRMAR_REGISTRO,
 
     // Estados relacionados con el turno del jugador
     TURNO_JUGADOR_ACTUAL,
     TURNO_JUGADOR_EN_ESPERA,
     INICIO_TURNO,
     ACTUALIZAR_MANO,
+    NINGUNO,
 
 
     // Estados relacionados con las manos y las cartas

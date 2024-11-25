@@ -55,6 +55,8 @@ public class CastilloDeCartas {
     public ColorCarta getColor() {
         return color;
     }
+
+
 }
 
 

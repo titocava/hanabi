@@ -54,34 +54,70 @@ public class JuegoMostrable {
         return representacionManos;
     }
 
-    // Método para mostrar la vista de todos los jugadores
-    public Map<Jugador, List<CartaRepresentacion>> mostrarVistaJugadores(Jugador jugadorActual) {
-        Map<Jugador, List<CartaRepresentacion>> vistaJugadores = new HashMap<>();
-
-        // Obtener todos los jugadores
-        List<Jugador> jugadores = tablero.obtenerJugadores();
-
-        for (Jugador jugador : jugadores) {
-            List<CartaRepresentacion> representacionMano = new ArrayList<>();
-
-            // Si es el jugador actual, las cartas pueden estar ocultas o visibles
-            if (jugador.equals(jugadorActual)) {
-                for (Carta carta : jugador.getMano()) {
-                    representacionMano.add(new CartaRepresentacion(carta.getColor(), carta.getNumero(), carta.esRevelada()));
-                }
+    public List<String> obtenerManoJugador(Jugador jugador) {
+        List<String> cartasMano = new ArrayList<>();
+        for (Carta carta : jugador.getMano()) {
+            if (carta.esRevelada()) {
+                cartasMano.add("visible: " + carta.toString()); // Mostrar carta como visible con su color y número
             } else {
-                // Si no es el jugador actual, todas las cartas estarán visibles
-                for (Carta carta : jugador.getMano()) {
-                    representacionMano.add(new CartaRepresentacion(carta.getColor(), carta.getNumero(), true));
-                }
+                cartasMano.add("no visible"); // Indicar que la carta está oculta
             }
+        }
+        return cartasMano;
+    }
 
-            // Añadir la representación del jugador al mapa
-            vistaJugadores.put(jugador, representacionMano);
+
+    public List<Map<String, List<String>>> obtenerManosVisiblesResto(Jugador jugadorInstanciado) {
+        List<Map<String, List<String>>> listaManosVisibles = new ArrayList<>();
+
+        for (Jugador jugador : juegoHanabi.getJugadores()) { // Usar el método getJugadores()
+            if (!jugador.equals(jugadorInstanciado)) { // Excluir al jugador instanciado
+                Map<String, List<String>> jugadorConMano = new HashMap<>();
+                List<String> cartasVisibles = new ArrayList<>();
+
+                for (Carta carta : jugador.getMano()) {
+                    // Mostrar siempre el color y número de las cartas
+                    cartasVisibles.add(carta.getColor() + " " + carta.getNumero());
+                }
+
+                jugadorConMano.put(jugador.getNombre(), cartasVisibles);
+                listaManosVisibles.add(jugadorConMano);
+            }
+        }
+        return listaManosVisibles;
+    }
+
+
+
+    public VistaJugadores mostrarVistaJugadores1(Jugador jugadorActual, List<Jugador> listaJugadores) {
+        // Implementación correcta que devuelve un objeto VistaJugadores
+        List<String> cartasJugadorActual = new ArrayList<>();
+        Map<String, List<String>> cartasOtrosJugadores = new HashMap<>();
+
+        // Procesar las cartas del jugador actual
+        for (Carta carta : jugadorActual.getMano()) {
+            if (carta.esRevelada()) {
+                cartasJugadorActual.add(carta.toString());
+            } else {
+                cartasJugadorActual.add("??");
+            }
         }
 
-        return vistaJugadores;
+        // Procesar las cartas de los demás jugadores
+        for (Jugador jugador : listaJugadores) {
+            if (!jugador.equals(jugadorActual)) {
+                List<String> cartasVisibles = new ArrayList<>();
+                for (Carta carta : jugador.getMano()) {
+                    cartasVisibles.add(carta.toString());
+                }
+                cartasOtrosJugadores.put(jugador.getNombre(), cartasVisibles);
+            }
+        }
+
+        return new VistaJugadores(cartasJugadorActual, cartasOtrosJugadores);
     }
+
+
 
 
 
@@ -121,30 +157,28 @@ public class JuegoMostrable {
 
 
     public int obtenerCartasRestantesEnMazo() {
-        return tablero.getMazoActual();  // Obtener cartas restantes del mazo
+        return juegoHanabi.getTablero().getMazoActual();  // Obtener cartas restantes del mazo
     }
 
 
     // Representación de las fichas de vida y pista
     public int obtenerFichasDeVida() {
-        return tablero.obtenerFichasDeVida();
+        return juegoHanabi.getTablero().obtenerFichasDeVida();
     }
 
     public int obtenerFichasDePistaUsadas() {
-        return tablero.obtenerFichasDePistaUsadas();
+        return juegoHanabi.getTablero().obtenerFichasDePistaUsadas();
     }
 
     public int obtenerFichasDePista() {
-        return tablero.obtenerFichasDePista();
+        return juegoHanabi.getTablero().obtenerFichasDePista();
     }
 
-    // Representación de los castillos (cartas apiladas por color)
-    public Map<ColorCarta, List<Carta>> obtenerEstadoCastillos() {
-        Map<ColorCarta, List<Carta>> estadoCastillos = new HashMap<>();
-        for (CastilloDeCartas castillo : tablero.getCastillos()) {
-            estadoCastillos.put(castillo.getColor(), castillo.getCartas());
-        }
-        return estadoCastillos;
+
+    public List<CastilloDeCartas> obtenerCastillos() {
+        return juegoHanabi.getTablero().getCastillos();  // Accede al tablero y obtiene la lista de castillos
     }
+
+
 
 }

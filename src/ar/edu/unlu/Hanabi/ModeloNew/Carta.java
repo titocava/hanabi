@@ -30,13 +30,9 @@ public class Carta {
         return revelada;
     }
 
-    public void revelar() {
-        this.revelada = true;
-    }
+    public void revelar() {     this.revelada = true;    }
 
-    public void ocultarRevelacion() {
-        this.revelada = false;
-    }
+
 
     // Método de coincidencia con pista
     public boolean coincideConPista(Pista pista) {

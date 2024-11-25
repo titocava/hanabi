@@ -7,6 +7,7 @@ public class JuegoHanabi {
     private Tablero tablero;           // Tablero que contiene los castillos, mazo y fichas
     private int indiceTurnoActual;    // Índice del jugador que tiene el turno actual
     private boolean juegoTerminado;   // Indica si el juego ha finalizado
+    private Jugador nuevoJugador;
 
     // Constructor
     public JuegoHanabi() {
@@ -18,22 +19,27 @@ public class JuegoHanabi {
 
     // Métodos
 
-    public Jugador registrarJugador(String nombreJugador) {
+    public void registrarJugador(String nombreJugador) {
         if (nombreJugador == null || nombreJugador.trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre del jugador no puede estar vacío.");
         }
 
-        if (jugadores.size() >= 4) {
-            throw new IllegalStateException("No se pueden registrar más de 4 jugadores.");
+        if (jugadores.size() >= 5) {
+            throw new IllegalStateException("No se pueden registrar más de 5 jugadores.");
         }
 
-        // Crear el jugador y agregarlo a la lista
-        Jugador nuevoJugador = new Jugador(nombreJugador.trim());
-        jugadores.add(nuevoJugador);
+        // Verificar si ya existe un jugador con el mismo nombre
+        for (Jugador jugador : jugadores) {
+            if (jugador.getNombre().equalsIgnoreCase(nombreJugador)) {
+                throw new IllegalArgumentException("El nombre '" + nombreJugador + "' ya está en uso.");
+            }
+        }
 
-        // Devolver el objeto Jugador creado
-        return nuevoJugador;
+        // Crear y agregar el jugador
+        Jugador nuevoJugador = new Jugador(nombreJugador);
+        jugadores.add(nuevoJugador);
     }
+
 
     public boolean juegoListoParaIniciar() {
         return jugadores.size() >= 2;
@@ -45,6 +51,7 @@ public class JuegoHanabi {
             throw new IllegalStateException("No se puede iniciar el juego sin al menos 2 jugadores.");
         }
         tablero = new Tablero(jugadores);  // El constructor de Tablero recibe los jugadores
+        tablero.repartirCartas(jugadores);
         indiceTurnoActual = 0;
         jugadores.get(indiceTurnoActual).setJugadorTurno(true);
     }
@@ -156,10 +163,12 @@ public class JuegoHanabi {
         tablero.tomarCarta(jugador);
 
     }
+    public int obtenerCantidadJugadores() {
+        return jugadores.size();
+    }
 
-
-    public Jugador[] getJugadores() {
-        return jugadores.toArray(new Jugador[0]);
+    public List<Jugador> getJugadores() {
+        return jugadores;
     }
     public Tablero getTablero() {
         return tablero;
