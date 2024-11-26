@@ -7,14 +7,14 @@ import java.util.List;
 public class Mazo {
     private final List<Carta> cartas;
 
-    // Constructor: Genera el mazo inicial
+
     public Mazo() {
         this.cartas = new ArrayList<>();
-        generarCartas(); // Genera las cartas del mazo
-        barajar();       // Baraja las cartas al inicio
+        generarCartas();
+        barajar();
     }
 
-    // Genera las cartas según la distribución estándar de Hanabi
+
     private void generarCartas() {
         for (ColorCarta color : ColorCarta.values()) {
             // Añadir 3 cartas con número 1
@@ -31,25 +31,23 @@ public class Mazo {
         }
     }
 
-    // Baraja las cartas del mazo
     public void barajar() {
         Collections.shuffle(cartas);
     }
 
-    // Roba una carta del mazo (si está vacío, devuelve null)
     public Carta robarCarta() {
         if (cartas.isEmpty()) {
-            return null; // No hay más cartas en el mazo
+            throw new IllegalStateException("No hay cartas en el mazo.");
         }
         return cartas.removeLast();
     }
 
-    // Devuelve el número de cartas restantes en el mazo
+
     public int cartasRestantes() {
         return cartas.size();
     }
 
     public boolean estaVacio() {
-        return cartas.isEmpty(); // Retorna true si el mazo está vacío, false si no lo está
+        return cartas.isEmpty();
     }
 }

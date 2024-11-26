@@ -11,10 +11,9 @@ import java.util.List;
 
 public class VistaGrafica extends JFrame implements IVista, Observador {
     private final ControladorJuegoHanabi controlador;
-    private final JTextArea txtSalida; // Salida de mensajes
+    private final JTextArea txtSalida;
     private EstadoVistaConsola estado;
     private final List<Jugador> jugadoresRegistrados;
-    private Eventos eventos;
 
     public VistaGrafica(ControladorJuegoHanabi controlador) {
         this.controlador = controlador;
@@ -35,45 +34,48 @@ public class VistaGrafica extends JFrame implements IVista, Observador {
     }
 
     private void configurarComponentes() {
-        // Configurar área de salida
+
         txtSalida.setEditable(false);
         txtSalida.setLineWrap(true);
         txtSalida.setWrapStyleWord(true);
         JScrollPane scrollPane = new JScrollPane(txtSalida);
 
-        // Agregar componentes principales
+        // Agregar el JScrollPane al contenedor
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    // Métodos de IVista y lógica del menú
     private void mostrarMenuPrincipal() {
         estado = EstadoVistaConsola.MENU_PRINCIPAL;
         mostrarOpciones("Menú Principal", new String[]{
                 "Nueva Partida",
                 "Iniciar Partida",
                 "Salir"
-        }, (opcion) -> {
-            switch (opcion) {
-                case 0 -> mostrarMenuNuevaPartida();
-                case 1 -> intentarIniciarJuego();
-                case 2 -> salirJuego();
-                default -> mostrarMensaje("Opción no válida.");
-            }
-        });
+        }, this::procesarComandoMenuPrincipal);
+    }
+
+    private void procesarComandoMenuPrincipal(int opcion) {
+        switch (opcion) {
+            case 0 -> mostrarMenuNuevaPartida();
+            case 1 -> intentarIniciarJuego();
+            case 2 -> salirJuego();
+            default -> mostrarMensaje("Opción no válida.");
+        }
     }
 
     private void mostrarMenuNuevaPartida() {
         estado = EstadoVistaConsola.NUEVA_PARTIDA;
         mostrarOpciones("Menú de Nueva Partida", new String[]{
                 "Crear un nuevo jugador",
-                "Iniciar Partida"
-        }, (opcion) -> {
-            switch (opcion) {
-                case 0 -> iniciarRegistroJugador();
-                case 1 -> intentarIniciarJuego();
-                default -> mostrarMensaje("Opción no válida.");
-            }
-        });
+                "Iniciar partida"
+        }, this::procesarMenuNuevaPartida);
+    }
+
+    private void procesarMenuNuevaPartida(int opcion) {
+        switch (opcion) {
+            case 0 -> iniciarRegistroJugador();
+            case 1 -> intentarIniciarJuego();
+            default -> mostrarMensaje("Opción no válida.");
+        }
     }
 
     private void iniciarRegistroJugador() {
@@ -162,7 +164,7 @@ public class VistaGrafica extends JFrame implements IVista, Observador {
         mostrarMensaje("Evento con datos: " + evento + " | Datos: " + data);
     }
 
-    // Interface funcional para opciones
+    // Interfaz funcional para opciones
     @FunctionalInterface
     interface OpcionSeleccionada {
         void seleccionarOpcion(int opcion);

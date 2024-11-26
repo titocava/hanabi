@@ -1,8 +1,7 @@
 package ar.edu.unlu.Hanabi.ModeloNew;
 
 
-import java.util.Observable;
-import java.util.Observer;
+
 
 public interface Observado {
     void agregarObservador(Observador observador);

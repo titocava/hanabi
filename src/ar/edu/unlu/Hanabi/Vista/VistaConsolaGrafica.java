@@ -2,10 +2,10 @@ package ar.edu.unlu.Hanabi.Vista;
 
 import ar.edu.unlu.Hanabi.Controlador.ControladorJuegoHanabi;
 import ar.edu.unlu.Hanabi.ModeloNew.*;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,9 +16,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
     private final JButton btnEnter;
     private EstadoVistaConsola estado;
     private final List<Jugador> jugadoresRegistrados;
-    private Eventos eventos;
-
-
 
     public VistaConsolaGrafica(ControladorJuegoHanabi controlador) {
         this.controlador = controlador;
@@ -27,16 +24,11 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         this.txtEntrada = new JTextField();
         this.btnEnter = new JButton("Enter");
 
-        // Crea el JTextArea
-
-// Configura el JTextArea para que no sea editable, y lo haga de solo lectura
         txtSalida.setEditable(false);
 
-// Asegúrate de que el texto se ajuste bien
         txtSalida.setLineWrap(true);
-        txtSalida.setWrapStyleWord(true); // Ajuste de línea por palabra
+        txtSalida.setWrapStyleWord(true);
 
-// Agregar el JTextArea a un JScrollPane para desplazamiento si el texto es largo
         JScrollPane scrollPane = new JScrollPane(txtSalida);
 
 
@@ -47,7 +39,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         mostrarMenuPrincipal();
     }
 
-    // Configuración general de la ventana principal
     private void configurarVentana() {
         setTitle("Hanabi - Juego en Consola");
         setSize(800, 600);
@@ -56,7 +47,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         setLayout(new BorderLayout());
     }
 
-    // Inicialización y configuración de componentes gráficos
     private void configurarComponentes() {
         txtSalida.setEditable(false);
         txtSalida.setLineWrap(true);
@@ -72,15 +62,26 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         add(panelInferior, BorderLayout.SOUTH);
     }
 
-    // Configuración de eventos para interacción con los componentes
-    private void configurarEventos() {
+    private void configurarEventos()  {
+        // Configura el evento de clic en el botón
         btnEnter.addActionListener((ActionEvent e) -> procesarEntrada(txtEntrada.getText().trim()));
+
+        // Configura el evento de presionar la tecla Enter en el campo de texto
+        txtEntrada.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    // Simula el clic en el botón "Enter" cuando se presiona Enter
+                    btnEnter.doClick();
+                    e.consume();  // Evita que se añadan saltos de línea al presionar Enter
+                }
+            }
+        });
     }
 
-    // Procesamiento de entradas según el estado actual
-    // Procesamiento de entradas según el estado actual
+
     private void procesarEntrada(String entrada) {
-        txtEntrada.setText(""); // Limpia el campo de entrada
+        txtEntrada.setText("");
         if (entrada.isEmpty()) {
             mostrarMensaje("Por favor, ingrese un comando.");
             return;
@@ -91,13 +92,11 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
             case REGISTRAR_JUGADOR -> procesarComandoRegistrarJugador(entrada);
             case NUEVA_PARTIDA -> ProcesarMenuNuevaPartida(entrada);
             case INICIAR_PARTIDA -> intentarIniciarJuego();
-
-
+            case NUEVO_JUGADOR -> procesarComandoNuevoJugador(entrada);
             default -> mostrarMensaje("Comando no reconocido.");
         }
     }
 
-    // Menús y comandos para cada estado
     private void mostrarMenuPrincipal() {
         estado = EstadoVistaConsola.MENU_PRINCIPAL;
         mostrarMensaje("""
@@ -128,8 +127,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         """);
     }
 
-
-
     private void ProcesarMenuNuevaPartida(String comando) {
         switch (comando) {
             case "1" -> iniciarRegistroJugador(); // Llama a los métodos ya implementados para registrar jugadores
@@ -138,11 +135,25 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         }
     }
 
+    private void mostrarMenuNuevoJugador() {
+        estado = EstadoVistaConsola.NUEVO_JUGADOR;
+        mostrarMensaje("""
+        ¿Deseas crear un nuevo jugador?
+        1. Sí, crear un nuevo jugador.
+        2. No, volver al menú de nueva partida.
+        Selecciona una opción:
+    """);
+    }
 
+    private void procesarComandoNuevoJugador(String comando) {
+        switch (comando) {
+            case "1" -> iniciarRegistroJugador(); // Si elige "1", registra un nuevo jugador
+            case "2" -> intentarIniciarJuego(); // Si elige "2", vuelve al menú de nueva partida
+            default -> mostrarMensaje("Opción no válida. Elija '1' o '2'.");
+        }
+    }
 
-    // Iniciar el registro de jugadores
     private void iniciarRegistroJugador() {
-
         if (jugadoresRegistrados.size() >= 5) {
             mostrarMensaje("Ya se ha alcanzado el límite máximo de jugadores.");
             return;
@@ -152,14 +163,11 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
 
     }
 
-    // Procesar el comando de registrar jugador
     private void procesarComandoRegistrarJugador(String nombre) {
         if (nombre.isEmpty()) {
             mostrarMensaje("El nombre no puede estar vacío.");
             return;
         }
-
-        // Registrar el jugador a través del controlador
         controlador.registrarJugador(nombre);
     }
 
@@ -169,38 +177,16 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         controlador.iniciarJuego(jugadores);
         controlador.iniciarTurno();
         mostrarMensaje("El juego ha comenzado. ¡Que comience la partida!");
-        estado = EstadoVistaConsola.JUEGO_INICIADO;
-
+        //estado = EstadoVistaConsola.JUEGO_INICIADO;
 
     }
 
-    private void crearVistasPorJugador() {
-        // Obtener la lista de jugadores del controlador
-        List<Jugador> jugadores = controlador.obtenerListaJugadores(); // Aquí obtenemos la lista de jugadores
-
-        // Iterar sobre cada jugador
-        for (Jugador jugador : jugadores) {
-            // Crear una nueva instancia de VistaConsolaGraficaJugador, pasando el controlador y el jugador
-            VistaConsolaGraficaJugador vistaJugador = new VistaConsolaGraficaJugador(controlador, jugador);
-
-            // Registrar la vista como observador del controlador
-            controlador.agregarObservador(vistaJugador);
-
-            // Inicializar la vista solo una vez
-            if (!vistaJugador.isVisible()) {
-                vistaJugador.iniciar();
-
-            }
-
-            // Mostrar un mensaje indicando que se creó una vista para el jugador
-            mostrarMensaje("Se creó una vista para el jugador: " + jugador.getNombre());
-        }
+    private void crearVistaPorJugador(Jugador jugador) {
+        VistaConsolaGraficaJugador vistaJugador = new VistaConsolaGraficaJugador(controlador, jugador);
+        controlador.agregarObservador(vistaJugador);
+        vistaJugador.iniciar();
+        mostrarMensaje("Se creó una vista para el jugador: " + jugador.getNombre());
     }
-
-
-
-
-
 
     private void salirJuego() {
         mostrarMensaje("Saliendo del juego.");
@@ -220,10 +206,6 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         txtSalida.setCaretPosition(txtSalida.getDocument().getLength());
     }
 
-
-
-
-
     @Override
     public void mostrarFinJuego() {
         mostrarMensaje("¡El juego ha terminado!");
@@ -235,12 +217,9 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
         switch (evento) {
             case INICIAR_JUEGO -> {
                 mostrarMensaje("¡Es el turno de " + controlador.obtenerJugadorActual().getNombre() + "!");
-                crearVistasPorJugador();
+
             }
-            case JUGADOR_CREADO -> {
-                mostrarMensaje("Jugador creado correctamente.");
-                mostrarMenuNuevaPartida();
-            }
+
             default -> mostrarMensaje("Evento desconocido: " + evento);
         }
     }
@@ -248,14 +227,21 @@ public class VistaConsolaGrafica extends JFrame implements IVista, Observador {
     @Override
     public void notificar(Eventos evento, Object data) {
         switch (evento) {
+            case JUGADOR_CREADO -> {
+                mostrarMensaje("Jugador creado correctamente.");
 
+                if (data instanceof Jugador jugador) {
+                    crearVistaPorJugador(jugador);
+                } else {
+                    mostrarMensaje("Error: El objeto recibido no es un jugador válido.");
+                }
+                mostrarMenuNuevoJugador();
+            }
 
-            default:
-                mostrarMensaje("Evento desconocido." + evento);
-                break;
-
+            default -> mostrarMensaje("Evento desconocido: " + evento);
+        }
     }
-    }
+
 
 }
 

@@ -16,6 +16,9 @@ public enum EstadoVistaConsola {
     DESCARTAR_CARTA,
     DAR_PISTA,
     CONFIRMAR_REGISTRO,
+    SELECCIONAR_PISTA,
+    OPCION_CREAR_O_INICIAR,
+    NUEVO_JUGADOR,
 
     // Estados relacionados con el turno del jugador
     TURNO_JUGADOR_ACTUAL,

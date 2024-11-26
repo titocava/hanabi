@@ -4,8 +4,10 @@ import ar.edu.unlu.Hanabi.ModeloNew.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.util.Map;
+import java.awt.event.ActionListener;
+import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Map;
 
 
 public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observador {
@@ -14,7 +16,8 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
     private final JTextField txtEntrada;
     private final JButton btnEnter;
     private EstadoVistaConsola estado;
-    private final Jugador jugador;  // Esta vista es para un jugador específico
+    private final Jugador jugador;
+    private SeleccionCarta seleccionCarta;
 
     public VistaConsolaGraficaJugador(ControladorJuegoHanabi controlador, Jugador jugador) {
         this.controlador = controlador;
@@ -22,8 +25,8 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
         this.txtSalida = new JTextArea();
         this.txtEntrada = new JTextField();
         this.btnEnter = new JButton("Enter");
+        this.seleccionCarta = new SeleccionCarta(txtSalida, txtEntrada, btnEnter);
 
-        // Configuración básica de la vista
         txtSalida.setEditable(false);
         txtSalida.setLineWrap(true);
         txtSalida.setWrapStyleWord(true);
@@ -55,104 +58,118 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
     }
 
     private void configurarEventos() {
+        // Configura el evento de clic en el botón
         btnEnter.addActionListener((ActionEvent e) -> procesarEntrada(txtEntrada.getText().trim()));
+
+        // Configura el evento de presionar la tecla Enter en el campo de texto
+        txtEntrada.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    btnEnter.doClick();  // Simula el clic en el botón "Enter" cuando se presiona Enter
+                    e.consume();  // Evita que se añadan saltos de línea al presionar Enter
+                }
+            }
+        });
     }
 
-    // Método para procesar la entrada del jugador
+
+
+
     private void procesarEntrada(String entrada) {
-        txtEntrada.setText(""); // Limpiar el campo de entrada
+        txtEntrada.setText(""); // Limpia el campo de texto
         if (entrada.isEmpty()) {
             mostrarMensaje("Por favor, ingrese un comando.");
             return;
         }
 
+        // Procesar comandos según el estado actual
         switch (estado) {
             case MENU_ACCIONES_JUGADOR -> procesarComandoAccionesJugador(entrada);
             default -> mostrarMensaje("Comando no reconocido.");
         }
+
+        // Asegura que el foco vuelva al campo de entrada
+        txtEntrada.requestFocusInWindow();
     }
+
 
     private void procesarComandoAccionesJugador(String comando) {
         switch (comando) {
             case "1" -> jugarCarta();
             case "2" -> darPista();
             case "3" -> descartarCarta();
-            case "4" -> mostrarManoDeJugadores();
+            case "4" -> mostrarManoDeJugador();
             case "5" -> mostrarMenuDeAccion();
             default -> mostrarMensaje("Opción no válida. Elija '1', '2', '3', '4' o '5'.");
         }
     }
 
-    // Acciones que el jugador puede tomar en su turno
     private void jugarCarta() {
-        mostrarMensaje("Carta jugada.");
-        seleccionarCarta(controlador.obtenerJugadorActual().getMano());
+        List<Carta> manoJugador = controlador.obtenerManoJugadorNoVisible(jugador);
 
+        // Reiniciar el selector antes de usarlo
+        reiniciarSelector();
 
+        seleccionCarta.seleccionar(manoJugador, cartaSeleccionada -> {
+            System.out.println("El usuario seleccionó: " + cartaSeleccionada);
+            controlador.jugadorJuegaCarta(jugador, cartaSeleccionada);
+        });
     }
 
     private void darPista() {
-        mostrarMensaje("Pista dada.");
+
+        SeleccionJugador seleccionJugador = new SeleccionJugador(txtSalida, txtEntrada, btnEnter);
+        List<Jugador> listaDeJugadores = controlador.obtenerListaJugadores();
+         seleccionJugador.seleccionar(listaDeJugadores, jugadorSeleccionado -> {
+            System.out.println("El usuario seleccionó: " + jugadorSeleccionado.getNombre());
+            mostrarMensaje("Iniciando flujo para dar una pista.");
+            GeneradorDePista generadorDePista = new GeneradorDePista(txtSalida, txtEntrada, btnEnter, controlador);
+            generadorDePista.generar(jugadorSeleccionado, pista -> {
+                System.out.println("Pista generada: " + pista);
+                controlador.jugadorDaPista(jugadorSeleccionado, pista);
+            });
+        });
+
     }
 
     private void descartarCarta() {
-        mostrarMensaje("Carta descartada.");
+        if (controlador.obtenerFichasDePistaUsadas() >= 1) {
+            mostrarMensaje("Selecciona una carta para descartar.");
+            SeleccionCarta seleccionCarta = new SeleccionCarta(txtSalida, txtEntrada, btnEnter);
+            List<Carta> manoJugador = controlador.obtenerManoJugadorNoVisible(jugador);
+            seleccionCarta.seleccionar(manoJugador, cartaSeleccionada -> {
+                System.out.println("El usuario seleccionó: " + cartaSeleccionada);
+                controlador.jugadorDescartaCarta(jugador, cartaSeleccionada);
+            });
+
+        } else {
+            mostrarMensaje("Aún no tiene fichas de pistas usadas para descartar.");
+            mostrarMenuDeAccion();
+
+        }
     }
 
-    // Mostrar las manos de los jugadores, con sus cartas
-    public void mostrarInformacionDeJugadoresInicio() {
-        procesarMostrarManoJugador(controlador.manoJugadorInicio(jugador));
-        ProcesarMostrarManosVisiblesRestantes(controlador.manosRestoJugadoresInicio(jugador));  // Llamamos al controlador para obtener la mano
+    public void mostrarInformacionDeJugadoresInicial() {
+        procesarMostrarCartasDeMano(controlador.obtenerManoJugadorNoVisible(jugador));
+        procesarMostrarManos(controlador.retornarManosVisiblesJugadores(jugador, controlador.obtenerListaJugadores()));
         procesarDatosTablero(controlador.obtenerDatosTablero());
-        mostrarMenuDeAccion();
-    }
-
-    public void mostrarManoDeJugadores(){
-        controlador.obtenerManoJugadorInstanciado(jugador);
-        controlador.manejarObtenerManosVisiblesResto(jugador);
 
     }
 
+     public void mostrarManoDeJugador(){
+        procesarMostrarCartasDeMano(controlador.obtenerManoJugadorNoVisible(jugador));
+        procesarMostrarManos(controlador.retornarManosVisiblesJugadores(jugador, controlador.obtenerListaJugadores()));
 
-    //metodos para iniciar la partida
-    public void procesarMostrarManoJugador(List<String> manoJugador) {
-        mostrarMensaje("Mano del jugador:");
-        if (manoJugador.isEmpty()) {
-            mostrarMensaje("No hay cartas en la mano.");
-        } else {
-            for (String carta : manoJugador) {
-                mostrarMensaje(carta);  // Mostrar cada carta una vez
-            }
-        }
     }
-    //metodos para iniciar la partida
-    public void ProcesarMostrarManosVisiblesRestantes(List<Map<String, List<String>>> listaManosVisibles) {
-        mostrarMensaje("Manos visibles del resto de jugadores:");
-        if (listaManosVisibles.isEmpty()) {
-            mostrarMensaje("No hay manos visibles.");
-        } else {
-            for (Map<String, List<String>> manos : listaManosVisibles) {
-                for (Map.Entry<String, List<String>> entry : manos.entrySet()) {
-                    mostrarMensaje("Cartas de " + entry.getKey() + ": " + entry.getValue());
-                }
-            }
-        }
-    }
+
 
     public void procesarDatosTablero(List<Object> datos) {
-        // Mostrar las cartas restantes en el mazo
         mostrarMensaje("Cartas restantes en el mazo: " + datos.get(0));
-
-        // Mostrar las fichas de vida
         mostrarMensaje("Fichas de vida: " + datos.get(1));
-
-        // Mostrar las fichas de pista usadas
         mostrarMensaje("Fichas de pista usadas: " + datos.get(2));
-
-        // Mostrar las fichas de pista
         mostrarMensaje("Fichas de pista: " + datos.get(3));
 
-        // Mostrar la información de los castillos
         List<CastilloDeCartas> castillos = (List<CastilloDeCartas>) datos.get(4);
         if (castillos.isEmpty()) {
             mostrarMensaje("No hay castillos en el tablero.");
@@ -162,22 +179,11 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
             }
         }
     }
-
-
-
-
-
-
-
-
-
     private void mostrarMenuDeAccion() {
         Jugador jugadorActual = controlador.obtenerJugadorActual();
-
-        // Comprobar si el jugador actual es el jugador cuya vista está activa
         if (jugadorActual.equals(this.jugador)) {
-        mostrarMensaje("Menú principal:\n1. Jugar carta\n2. Dar pista\n3. Descartar carta\n4. Ver tu mano\n5. Salir");
-        estado = EstadoVistaConsola.MENU_ACCIONES_JUGADOR;
+            mostrarMensaje("Menú principal:\n1. Jugar carta\n2. Dar pista\n3. Descartar carta\n4. Ver tu mano\n5. Salir");
+            estado = EstadoVistaConsola.MENU_ACCIONES_JUGADOR;
         }else{
             mostrarMensaje("Espera tu turno.");
         }
@@ -186,67 +192,80 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
     @Override
     public void notificar(Eventos evento) {
         switch (evento) {
-            case JUGADA_REALIZADA:
-                mostrarMensaje("¡Has jugado una carta!");
+            case INICIAR_JUEGO:
+                reiniciarSelector();
+                mostrarInformacionDeJugadoresInicial();
+                mostrarMenuDeAccion();
                 break;
+
+            case JUGADOR_JUGO_CARTA, CAMBIO_TURNO:
+                reiniciarSelector();
+                mostrarInformacionDeJugadoresInicial();
+                mostrarMenuDeAccion();
+                break;
+
+            case NO_HAY_PISTAS_USADAS:
+
+                mostrarMensaje("Aún no tiene fichas de pistas usadas para descartar.");
+                break;
+
             case PISTA_DADA:
+                reiniciarSelector();
                 mostrarMensaje("¡Pista dada!");
+                mostrarInformacionDeJugadoresInicial();
+                mostrarMenuDeAccion();
                 break;
-            case CARTA_DESCARTADA:
+
+            case JUGADOR_DESCARTO_CARTA:
+                reiniciarSelector();
                 mostrarMensaje("¡Has descartado una carta!");
+                mostrarInformacionDeJugadoresInicial();
+                mostrarMenuDeAccion();
                 break;
-            case ACTUALIZAR_MANO:
-                mostrarMensaje("Mano actualizada.");
-                break;
-            case FIN_DE_TURNO:
-                mostrarMensaje("Tu turno ha terminado.");
-                break;
+
             default:
-                mostrarMensaje("Evento no reconocido.");
+                mostrarMensaje("Evento no manejado: " + evento);
                 break;
         }
     }
+
 
     @Override
     public void notificar(Eventos evento, Object datoAenviar) {
-        switch (evento) {
-            case MOSTRAR_MANO:
+        /*switch (evento) {
+            case MOSTRAR_MANO -> {
                 mostrarMensaje("Mano del jugador:");
-                List<String> manoJugador = (List<String>) datoAenviar;
-                if (manoJugador.isEmpty()) {
+                if (datoAenviar instanceof List<?> cartas && !cartas.isEmpty() && cartas.get(0) instanceof Carta) {
+                    procesarMostrarCartasDeMano((List<Carta>) cartas); // Casteo seguro
+                } else {
                     mostrarMensaje("No hay cartas en la mano.");
-                } else {
-                    for (String carta : manoJugador) {
-                        mostrarMensaje(carta);  // Mostramos cada carta una vez
-                    }
                 }
-                break;
+            }
 
-            case MOSTRAR_MANOS_VISIBLES_RESTO:
+            case MOSTRAR_MANOS_VISIBLES_RESTO -> {
                 mostrarMensaje("Manos visibles del resto de jugadores:");
-                List<Map<String, List<String>>> listaManosVisibles = (List<Map<String, List<String>>>) datoAenviar;
-                if (listaManosVisibles.isEmpty()) {
-                    mostrarMensaje("No hay manos visibles.");
+                if (datoAenviar instanceof List<?> manos && !manos.isEmpty() && manos.get(0) instanceof Map) {
+                    // Asegúrate de que es el tipo correcto
+                    List<Map<Jugador, List<Carta>>> manosList = (List<Map<Jugador, List<Carta>>>) manos;
+                    procesarMostrarManos(manosList); // Llamada con cast validado
                 } else {
-                    for (Map<String, List<String>> manos : listaManosVisibles) {
-                        for (Map.Entry<String, List<String>> entry : manos.entrySet()) {
-                            // Mostrar solo si no ha sido mostrado previamente
-                            mostrarMensaje("Cartas de " + entry.getKey() + ": " + entry.getValue());
-                        }
-                    }
+                    mostrarMensaje("No hay manos visibles.");
                 }
-                break;
-            case JUGADOR_TOMO_CARTA:
-                mostrarInformacionDeJugadoresInicio();
-                controlador.cambiarTurno();
-                break;
+            }
 
+            case ACTUALIZAR_TABLERO -> {
+                mostrarMensaje("Información actualizada del tablero:");
+                if (datoAenviar instanceof List<?> datos && !datos.isEmpty()) {
+                    procesarDatosTablero((List<Object>) datos); // Casteo
+                } else {
+                    mostrarMensaje("Error al actualizar el tablero: datos inválidos o vacíos.");
+                }
+            }
 
-            default:
-                mostrarMensaje("Evento no reconocido.");
-                break;
-        }
+            default -> mostrarMensaje("Evento no manejado: " + evento);
+        }*/
     }
+
 
 
     @Override
@@ -257,9 +276,7 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
 
     @Override
     public void iniciar() {
-
-        setVisible(true); // Asegura que la vista sea visible cuando se inicie
-        mostrarInformacionDeJugadoresInicio();
+        setVisible(true);
     }
 
     @Override
@@ -267,40 +284,91 @@ public class VistaConsolaGraficaJugador extends JFrame implements IVista, Observ
         mostrarMensaje("¡El juego ha terminado!");
     }
 
-    private void seleccionarCarta(List<Carta> mano) {
-        // Muestra las cartas visibles con índices
-        StringBuilder mensaje = new StringBuilder("Seleccione una carta de su mano:\n");
-        for (int i = 0; i < mano.size(); i++) {
-            Carta carta = mano.get(i);
-            mensaje.append(i + 1).append(". ").append(carta.toString()).append("\n"); // toString personalizado para mostrar carta
+    public void procesarMostrarManos(List<Map<Jugador, List<Carta>>> listaManos) {
+        if (listaManos.isEmpty()) {
+            mostrarMensaje("No hay manos visibles para mostrar.");
+            return;
         }
-        mostrarMensaje(mensaje.toString()); // Mostrar en JTextArea
 
-        // Cambia el evento del botón para procesar la entrada
-        btnEnter.addActionListener((ActionEvent e) -> {
-            try {
-                int seleccion = Integer.parseInt(txtEntrada.getText().trim()) - 1; // Índices comienzan en 1
-                txtEntrada.setText(""); // Limpia la entrada
-                if (seleccion >= 0 && seleccion < mano.size()) {
-                    Carta cartaSeleccionada = mano.get(seleccion);
-                    mostrarMensaje("Has seleccionado: " + cartaSeleccionada.toString());
-                    // Aquí llamas al método del controlador para arrojar o jugar la carta
-                    procesarAccionCarta(cartaSeleccionada);
+        for (Map<Jugador, List<Carta>> manos : listaManos) {
+
+            for (Map.Entry<Jugador, List<Carta>> entry : manos.entrySet()) {
+                Jugador jugador = entry.getKey();
+                List<Carta> mano = entry.getValue();
+
+                mostrarMensaje("Mano de " + jugador.getNombre() + ":");
+
+                if (mano.isEmpty()) {
+                    mostrarMensaje("  Sin cartas.");
                 } else {
-                    mostrarMensaje("Selección inválida. Intente nuevamente.");
+                    for (Carta carta : mano) {
+                        mostrarMensaje("  " + carta.toString());
+                    }
                 }
-            } catch (NumberFormatException ex) {
-                mostrarMensaje("Entrada no válida. Por favor ingrese un número.");
+
+                mostrarMensaje("====================");
+            }
+        }
+    }
+
+
+
+    public void procesarMostrarCartasDeMano(List<Carta> cartas) {
+        if (cartas.isEmpty()) {
+            mostrarMensaje("La mano está vacía.");
+            return;
+        }
+
+        mostrarMensaje("Cartas visibles:");
+        for (int i = 0; i < cartas.size(); i++) {
+            Carta carta = cartas.get(i);
+
+            // Verificar si la carta está revelada y mostrar el mensaje en consecuencia
+            if (carta.esRevelada()) {
+                mostrarMensaje((i + 1) + ". " + carta.toString());  // Si la carta está revelada, la mostramos normalmente
+            } else {
+                mostrarMensaje((i + 1) + ". Carta no visible");  // Si no está revelada, indicamos que no es visible
+            }
+        }
+        mostrarMensaje("--------------------");
+    }
+
+    private void configurarListenerDinamico(ActionListener listener) {
+        // Elimina los listeners anteriores del botón
+        for (ActionListener al : btnEnter.getActionListeners()) {
+            btnEnter.removeActionListener(al);
+        }
+        btnEnter.addActionListener(listener);
+
+        // Configura el evento de presionar la tecla Enter en el campo de texto
+        txtEntrada.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    btnEnter.doClick(); // Simula el clic en el botón
+                    e.consume(); // Evita eventos adicionales o saltos de línea
+                }
             }
         });
+
+        // Asegura que el foco esté en el campo de texto
+        txtEntrada.requestFocusInWindow();
     }
 
-    // Ejemplo de procesamiento de la acción con la carta seleccionada
-    private void procesarAccionCarta(Carta cartaSeleccionada) {
-        // Aquí decides qué hacer con la carta seleccionada (descartar, jugar, etc.)
-        mostrarMensaje("Procesando acción para la carta: " + cartaSeleccionada.toString());
-        controlador.jugadorJuegaCarta(jugador, cartaSeleccionada);
+    // Método para reiniciar el selector
+    private void reiniciarSelector() {
+        // Eliminar listeners anteriores
+        for (ActionListener al : btnEnter.getActionListeners()) {
+            btnEnter.removeActionListener(al);
+        }
+
+        // Volver a configurar los eventos base
+        configurarEventos();
     }
+
+
+
+
 
 
 

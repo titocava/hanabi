@@ -9,31 +9,30 @@ public class CastilloDeCartas {
 
     public CastilloDeCartas(ColorCarta color) {
         this.color = color;
-        this.cartas = new LinkedList<>();  // Usamos LinkedList para optimizar el acceso al último elemento
+        this.cartas = new LinkedList<>();
     }
 
     public boolean apilarCarta(Carta carta) {
-        // Verificar si la carta tiene el color correcto
+
         if (carta.getColor() != this.color) {
-            return false;  // No apilar si el color no coincide
+            return false;
         }
 
-        // Si el castillo está vacío, solo se puede apilar el 1
         if (cartas.isEmpty()) {
             if (carta.getNumero() == 1) {
                 cartas.add(carta);
                 return true;
             }
         } else {
-            // Si el castillo no está vacío, verificamos el número y el color
-            Carta cartaSuperior = cartas.getLast();  // Usamos get() con índice en LinkedList
+
+            Carta cartaSuperior = cartas.getLast();
             if (carta.getNumero() == cartaSuperior.getNumero() + 1) {
                 cartas.add(carta);
                 return true;
             }
         }
 
-        return false;  // Si no se puede apilar, devolvemos false
+        return false;
     }
 
     public boolean esCastilloCompleto() {
@@ -49,7 +48,7 @@ public class CastilloDeCartas {
     }
 
     public List<Carta> getCartas() {
-        return List.copyOf(cartas);  // Devuelve una copia inmutable de la lista
+        return cartas;
     }
 
     public ColorCarta getColor() {
